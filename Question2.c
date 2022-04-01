@@ -36,7 +36,8 @@ Also keep track of which region of memory has been allocated to which process. N
 
 //An object that will be used to hold the memory, identify the memroy,...
 struct Structure *startHole, *endHole, *startAllocated, *endAllocated;
-//int remainingSpace, totHoles, totProcesses, alloSpace
+int remainingSpace, totHoles, totProcesses, alloSpace;
+
 typedef struct Structure {
     char id[BUFFERSIZE];
 	int size;
@@ -47,11 +48,13 @@ typedef struct Structure {
 } Structure;
 
 //Function definitions
-int commandValidator(char *command);
+int readCommand(char *command);
+void status(char *string);
+
 int main(int argc, char *argv[]){
 	if(argc >= 2){
 
-		int remainingSpace = atoi(argv[1]);//argv is a vector of strings from the command line, we take argv[1] because the number of bytes allocated to memory is this location
+		remainingSpace = atoi(argv[1]);//argv is a vector of strings from the command line, we take argv[1] because the number of bytes allocated to memory is this location
 		printf("Allocated %d bytes of memory\n", remainingSpace);
 
 		Structure temp;
@@ -67,7 +70,7 @@ int main(int argc, char *argv[]){
 		endAllocated = (Structure *)malloc(sizeof(Structure));
 
 		//Assigning the variables which will be used to keep track of; number of total holes, number of total process and the total allocated space
-		int totHoles = 1, totProcesses = 0, alloSpace = 0;
+		totHoles = 1, totProcesses = 0, alloSpace = 0;
 
 		int cond = 0; //A condition for the while loop
 		while(cond == 0){
@@ -80,6 +83,25 @@ int main(int argc, char *argv[]){
 	return 00;
 }
 
-int commandValidator(char *command){
-	
+int readCommand(char *command){
+	//checks if the last element in the string is a new line character. If it is replace it with a end of line char.
+	char *cmd = (char*) malloc(sizeof(char) * BUFFERSIZE);
+	int i = 0;
+
+	//While loop will run until a end of string character is found
+	while(command[i] != '\0'){
+		if(command[i] !='\r' && command[i] !='\n') //As long as the current character is not a new line or a carriage feed, we will append that character into our new string
+			cmd[i] = command[i];
+		i++;
+	}
+
+	//Confriming the final character is a end of string/Null character
+	cmd[i] = '\0';
+
+	printf("%d\n",strcmp(cmd,"Status"));
+	return 0;
+}
+
+void status(char *string){
+	printf("Partitions [Allocated memory = %d]:\n", alloSpace);
 }
