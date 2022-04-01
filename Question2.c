@@ -72,13 +72,13 @@ int main(int argc, char *argv[]){
 		//Assigning the variables which will be used to keep track of; number of total holes, number of total process and the total allocated space
 		totHoles = 1, totProcesses = 0, alloSpace = 0;
 
-		int cond = 0; //A condition for the while loop
-		while(cond == 0){
+// 		int cond = 0; //A condition for the while loop
+// 		while(cond == 0){
 			printf("command>");//Ask the user for a command
 			char cmdInput[BUFFERSIZE];
 			fgets(cmdInput, BUFFERSIZE, stdin);//stdin is the standard input so we read from the command line what the user has submitted
-
-		}
+			readCommand(cmdInput);
+// 		}
 	}
 	return 00;
 }
