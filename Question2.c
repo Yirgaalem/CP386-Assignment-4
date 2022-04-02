@@ -98,10 +98,23 @@ int readCommand(char *command){
 	//Confriming the final character is a end of string/Null character
 	cmd[i] = '\0';
 
-	printf("%d\n",strcmp(cmd,"Status"));
+	//Checks if the command passed was "Status", if so call the status function
+	if(strcmp(cmd,"Status")==0)
+		status(cmd);
+
+	//Checks if the command passed was "Status", if print a statement saying the system will exit and exit.
+	else if(strcmp(cmd,"Exit")==0){
+		printf("Thank you, exiting the program...\n");
+		exit(0);
+	}
+	else{
+
+		printf("Invalid command, please try again\n");
+	}
 	return 0;
 }
 
 void status(char *string){
 	printf("Partitions [Allocated memory = %d]:\n", alloSpace);
 }
+
