@@ -50,7 +50,9 @@ typedef struct Structure {
 //Function definitions
 int readCommand(char *command);
 void status(char *string);
-
+int confirmerRQ(char array[MAX][BUFFERSIZE], int size);
+int confrimerRL(char array[MAX][BUFFERSIZE],int size);
+int confrimRequest(char array[MAX][BUFFERSIZE], int size);
 int main(int argc, char *argv[]){
 	if(argc >= 2){
 
@@ -72,13 +74,14 @@ int main(int argc, char *argv[]){
 		//Assigning the variables which will be used to keep track of; number of total holes, number of total process and the total allocated space
 		totHoles = 1, totProcesses = 0, alloSpace = 0;
 
-// 		int cond = 0; //A condition for the while loop
-// 		while(cond == 0){
+//		int cond = 0; //A condition for the while loop
+//		while(cond == 0){
 			printf("command>");//Ask the user for a command
 			char cmdInput[BUFFERSIZE];
 			fgets(cmdInput, BUFFERSIZE, stdin);//stdin is the standard input so we read from the command line what the user has submitted
 			readCommand(cmdInput);
-// 		}
+//		}
+
 	}
 	return 00;
 }
@@ -108,13 +111,60 @@ int readCommand(char *command){
 		exit(0);
 	}
 	else{
+		//We will need to take the string from the file and break it into 4 parts if its RQ; 1 to check if its "RQ", 2 to check the process number, 3 to check size and 4 to see if the submitted 'B'
+		//If it is RL then we only need 2, 1 to check it is RL, 2 to check the process number/name.
+		int index = 0;
+		char *comm = (char *)malloc(sizeof(char)*BUFFERSIZE);
+		char array[MAX][BUFFERSIZE];
+		comm = strtok(cmd, " ");//Takes all the characters in the strnig up until the first space
 
-		printf("Invalid command, please try again\n");
+		while(comm != NULL){
+			strcpy(array[index], comm);
+			comm = strtok(NULL, " "); //mayve change to strtok(cmd, " ");
+			i++;
+		}
+
+		//Comparing the first value in array which is the first string in the command before a white space is entered.
+		//Checking if the commands passed start with RL or RQ, the only possible commands left, if not, print a statement that the command is invalid
+		//As mentioned in the comment above, if it is RL we will have two indicies in the array, one for the string "RL" and the other for the process name/number. For RQ we will have 4
+		int RQ = (strcmp("RQ",array[0])), RL = (strcmp("RL",array[0]));
+
+		if(RQ == 0 || RL == 0){
+			if(RQ == 0 && index == 4){
+				if(confirmerRQ(array, index) && strcmp("B",array[3])==0){
+					//The RQ command is good, now just check if what we asked for is accesible, check if the request is valid
+				}
+			}
+			else if(RL == 0 && index == 2){
+				//do stuff
+			}
+
+		}
+		else
+			printf("Invalid command, please try again\n");
 	}
 	return 0;
+}
+
+//Function that checks if parts of the RQ command is correct
+int confirmerRQ(char array[MAX][BUFFERSIZE], int size){
+
+	//Loop runs if the 2nd elemnt in the array (the process number)'s first character is a letter and if the 4th element in the array is
+	if(isalpha(array[1][0]) != 0 && isalpha(array[3][0] != 0)){
+		for(int i = 0; i < sizeof(array[2]);i++){
+			if(isdigit(array[2][i]) != 0)
+				return 0;
+		}
+
+	}
+	return 1;
+
+}
+
+int conrfimerRL(char array[MAX][BUFFERSIZE],int size){
+	return 1;
 }
 
 void status(char *string){
 	printf("Partitions [Allocated memory = %d]:\n", alloSpace);
 }
-
