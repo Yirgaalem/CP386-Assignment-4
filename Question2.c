@@ -38,14 +38,14 @@ Also keep track of which region of memory has been allocated to which process. N
 struct Structure *startHole, *endHole, *startAllocated, *endAllocated;
 int remainingSpace, totHoles, totProcesses, alloSpace;
 
-typedef struct Structure {
+struct Structure {
     char id[BUFFERSIZE];
 	int size;
     struct Structure *next;
     struct Structure * prev;
     int startMemory;//the beginning of where there memory is (0)
     int endMemory;//The end of where the memory is, set to how many free spaces we have - 1 as we go from 0 to MAX-1
-} Structure;
+};
 
 //Function definitions
 int readCommand(char *command);
@@ -53,24 +53,25 @@ void status(char *string);
 int confirmerRQ(char array[MAX][BUFFERSIZE], int size);
 int confrimerRL(char array[MAX][BUFFERSIZE],int size);
 int confrimRequest(char array[MAX][BUFFERSIZE], int size);
+
 int main(int argc, char *argv[]){
 	if(argc >= 2){
 
 		remainingSpace = atoi(argv[1]);//argv is a vector of strings from the command line, we take argv[1] because the number of bytes allocated to memory is this location
 		printf("Allocated %d bytes of memory\n", remainingSpace);
 
-		Structure temp;
-		temp.startMemory = 0;
-		temp.endMemory = remainingSpace - 1;
-		temp.size = remainingSpace;
+		struct Structure struc;
+		struc.startMemory = 0;
+		struc.endMemory = remainingSpace - 1;
+		struc.size = remainingSpace;
 
-		startHole = &temp;
-		endHole = &temp;
+		startHole = &struc;
+		endHole = &struc;
 
 		//Allocating space for the start and end Allocated structures
-		startAllocated = (Structure *)malloc(sizeof(Structure));
-		endAllocated = (Structure *)malloc(sizeof(Structure));
-
+		startAllocated = (struct Structure *)malloc(sizeof(struct Structure));
+		endAllocated = (struct Structure *)malloc(sizeof(struct Structure));
+		startAllocated = NULL; endAllocated = NULL;
 		//Assigning the variables which will be used to keep track of; number of total holes, number of total process and the total allocated space
 		totHoles = 1, totProcesses = 0, alloSpace = 0;
 
@@ -160,6 +161,51 @@ int confirmerRQ(char array[MAX][BUFFERSIZE], int size){
 	return 1;
 
 }
+
+//This function is called if the Request command is properly submitted. Checks if we can access what the command is asking for, checks if its valid
+int confrimRequest(char array[MAX][BUFFERSIZE], int size){
+//	int fnd = 0, reqSpace = atoi(array[2]);
+//
+//	struct Strucutre *x = startHole, *y = NULL, *z = (struct Structure*)malloc(sizeof(struct Structure*));
+//
+//	while(!(x==NULL)){
+//		if(x->size >= reqSpace){
+//			if(fnd == 0){
+//				y = x;
+//				fnd = 1;
+//			}
+//			else{
+//				if(y->size > x->size)
+//					y = x;
+//			}
+//		}x = x->next;
+//	}
+//	if(fnd == 0)
+//		return 1;
+	int reqSpace = atoi(array[2]);
+
+	int fnd = 0;
+
+	struct Structure *x = startHole,*y = endHole;
+
+	while (x != NULL) {
+		if (x->size >= reqSpace) {
+			if (fnd==0) {
+				y = x;
+				fnd = 1;
+			} else {
+				if (y->size > x->size)
+					y = x;
+			}
+		}
+		x = x->next;
+	}
+
+	if (fnd == 0)
+		return 1;
+
+}
+
 
 int conrfimerRL(char array[MAX][BUFFERSIZE],int size){
 	return 1;
