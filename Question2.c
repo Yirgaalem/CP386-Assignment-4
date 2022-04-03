@@ -4,13 +4,10 @@ different requests:
 • Request for a contiguous block of memory
 • Release of a contiguous block of memory
 • Report the regions of free and allocated memory
-
 We are using the Best-fit algorithm, this requires the program to keep track of different allocations and holes represneting available memory.
 When a request for memory has arrived, it will allocate the memory from one of the available hoeles based on the allocation strategy (the first allocation, all memory is available).
 If there is insufficient memory to allocate the request, it will output an error message and reject the request
-
 Also keep track of which region of memory has been allocated to which process. Necessary so that we can support the "Status" command and is also neeeded when memory is released via "RL" command (the process releasing memory is passed to this command)
-
  */
 
 
@@ -134,17 +131,36 @@ int readCommand(char *command){
 			if(RQ == 0 && index == 4){
 				if(confirmerRQ(array, index) && strcmp("B",array[3])==0){
 					//The RQ command is good, now just check if what we asked for is accesible, check if the request is valid
+					int valid = confrimRequest(array,index);
+					if(valid == 0)
+						printf("Successfully allocated %s to process %s\n",array[2],array[1]);
+					else
+						printf("No hole of sufficient size")
 				}
 			}
 			else if(RL == 0 && index == 2){
 				//do stuff
+				printf("hello");
 			}
+
+			//Runs if the command starts with RQ or RL but isn't proper
+			else
+				printf("Invalid command, missing elements or incorrectly spelt");
 
 		}
 		else
 			printf("Invalid command, please try again\n");
 	}
 	return 0;
+}
+
+void status(char *string){
+	printf("Partitions [Allocated memory = %d]:\n", alloSpace);
+	struct Structure *x = startAllocated;
+	while(!(x==NULL)){
+		printf("Address [%d:%d] Process %s\n",x->startMemory,x->endMemory,x->id);
+		x = x->next
+	}
 }
 
 //Function that checks if parts of the RQ command is correct
@@ -164,29 +180,9 @@ int confirmerRQ(char array[MAX][BUFFERSIZE], int size){
 
 //This function is called if the Request command is properly submitted. Checks if we can access what the command is asking for, checks if its valid
 int confrimRequest(char array[MAX][BUFFERSIZE], int size){
-//	int fnd = 0, reqSpace = atoi(array[2]);
-//
-//	struct Strucutre *x = startHole, *y = NULL, *z = (struct Structure*)malloc(sizeof(struct Structure*));
-//
-//	while(!(x==NULL)){
-//		if(x->size >= reqSpace){
-//			if(fnd == 0){
-//				y = x;
-//				fnd = 1;
-//			}
-//			else{
-//				if(y->size > x->size)
-//					y = x;
-//			}
-//		}x = x->next;
-//	}
-//	if(fnd == 0)
-//		return 1;
-	int reqSpace = atoi(array[2]);
+	int reqSpace = atoi(array[2]), fnd = 0;
 
-	int fnd = 0;
-
-	struct Structure *x = startHole,*y = endHole;
+	struct Structure *x = startHole,*y = NULL, *z = (struct Structure*)malloc(sizeof(struct Structure*));
 
 	while (x != NULL) {
 		if (x->size >= reqSpace) {
@@ -204,6 +200,27 @@ int confrimRequest(char array[MAX][BUFFERSIZE], int size){
 	if (fnd == 0)
 		return 1;
 
+	strcpy(z->id, array[1]);
+	z->next = NULL, z->prev = NULL, z->size = reqSpace;
+	z->startMemory = y->startMemory;
+	z->endMemory = y->startMemory + reqSpace -1;
+
+	if(&startAllocated == NULL && &endAllocated == NULL){
+		startAllocated = z;
+		endAllocated = z;
+	}
+	else{
+		z->prev = endAllocated;
+		endAllocated->next = z;
+		endAllocated = z;
+	}
+
+	y->startMemory = y->startMemory + reqSpace;
+	y->size = y->size - reqSpace;
+
+	remainingSpace = remainingSpace - reqSpace;
+	alloSpace = alloSpace + reqSpace;
+
 }
 
 
@@ -211,6 +228,4 @@ int conrfimerRL(char array[MAX][BUFFERSIZE],int size){
 	return 1;
 }
 
-void status(char *string){
-	printf("Partitions [Allocated memory = %d]:\n", alloSpace);
-}
+
