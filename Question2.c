@@ -48,8 +48,8 @@ struct Structure {
 int readCommand(char *command);
 void status(char *string);
 int confirmerRQ(char array[MAX][BUFFERSIZE], int size);
-int confrimerRelease(char array[MAX][BUFFERSIZE],int size);
-int confrimRequest(char array[MAX][BUFFERSIZE], int size);
+int confirmRelease(char array[MAX][BUFFERSIZE],int size);
+int confirmRequest(char array[MAX][BUFFERSIZE], int size);
 void listAdd(struct Structure *x, struct Structure **y, struct Structure **z);
 void listTake(struct Structure *x, struct Structure **y, struct Structure **z);
 
@@ -101,7 +101,7 @@ int readCommand(char *command){
 		i++;
 	}
 
-	//Confriming the final character is a end of string/Null character
+	//confirming the final character is a end of string/Null character
 	cmd[i] = '\0';
 
 	//Checks if the command passed was "Status", if so call the status function
@@ -134,32 +134,31 @@ int readCommand(char *command){
 			comm = strtok(NULL, " ");
 			index++;
 		}
-		printf("%s",array);
 		//Comparing the first value in array which is the first string in the command before a white space is entered.
 		//Checking if the commands passed start with RL or RQ, the only possible commands left, if not, print a statement that the command is invalid
 		//As mentioned in the comment above, if it is RL we will have two indicies in the array, one for the string "RL" and the other for the process name/number. For RQ we will have 4
 		int RQ = (strcmp("RQ",array[0])), RL = (strcmp("RL",array[0]));
 
-		printf("hello");
+
 		if(RQ == 0 || RL == 0){
 			if(RQ == 0 && index == 4){
 				if(confirmerRQ(array, index) && strcmp("B",array[3])==0){
 					//The RQ command is good, now just check if what we asked for is accesible, check if the request is valid
-					int valid = confrimRequest(array, index);
+					int valid = confirmRequest(array, index);
 					if(valid == 0)
 						printf("Successfully allocated %s to process %s\n",array[2],array[1]);
 					else
-						printf("No hole of sufficient size");
+						printf("No hole of sufficient size\n");
 				}
 			}
 			else if(RL == 0 && index == 2){
 				//do stuff
-				int valid = confrimRelease(array, index);
+				int valid = confirmRelease(array, index);
 			}
 
 			//Runs if the command starts with RQ or RL but isn't proper
 			else
-				printf("Invalid command, missing elements or incorrectly spelt");
+				printf("Invalid command, please try again\n");
 
 		}
 		else
@@ -202,7 +201,7 @@ int confirmerRQ(char array[MAX][BUFFERSIZE], int size){
 }
 
 //This function is called if the Request command is properly submitted. Checks if we can access what the command is asking for, checks if its valid
-int confrimRequest(char array[MAX][BUFFERSIZE], int size){
+int confirmRequest(char array[MAX][BUFFERSIZE], int size){
 	int reqSpace = atoi(array[2]), fnd = 0;
 
 	struct Structure *x = startHole,*y = NULL, *z = (struct Structure*)malloc(sizeof(struct Structure*));
@@ -279,8 +278,101 @@ void listTake(struct Structure *x, struct Structure **y,struct Structure **z) {
 }
 
 
-int conrfimerRL(char array[MAX][BUFFERSIZE],int size){
-	return 1;
-}
+int confirmRelease(char array[MAX][BUFFERSIZE],int size){
+	struct Structure *x = startAllocated, *y = NULL;
+	int fnd = 0;
 
+	//A simple loop used to check if that which we are looking for exists, if it is, fnd is set to 1 and we break out the loop
+	while(!(x==NULL) && fnd == 0){
+		if(strcmp(array[1],x)==0){
+			fnd = 1; y - x;
+		}
+		x = x->next;
+	}
 
+	if(fnd == 0)
+		return 1;
+
+	int bf = 0, af = 0, ff = 0;
+
+	struct Structure *curr = NULL, *post = NULL, *prev = NULL;
+	curr = startHole;
+
+	while (bf == 0 && !(x == NULL)) {
+		if (y->startMemory == (x->startMemory + 1)) {
+			ff = 1;
+			curr = x;
+		}
+		else if (y->endMemory == (x->endMemory - 1)) {
+			af = 1;
+			post = x;
+		}
+
+		if (y->startMemory > x->endMemory)
+			prev = x;
+
+		if (!(curr == NULL) && !(post == NULL))
+			bf = true;
+
+		x = x->next;
+	}
+
+	if (bf == 1) {
+		struct Structure *hold;
+		hold = (struct Structure*) malloc(sizeof(struct Structure*));
+		strcpy(hold->id, "nothing");
+
+		hold->size = curr->size + y->size + post->size;
+		hold->prev = curr->prev; hold->next = post->next;
+		hold->startMemory = curr->startMemory;hold->endMemory = post->endMemory;
+
+		 if (post->next == NULL)
+			endHole = hold;
+
+		 else if (curr->prev == NULL)
+			startHole = hold;
+
+	} else if (af == 1) {
+		post->startMemory = y->startMemory;
+		post->size += y->size;
+
+	} else if (ff == 1) {
+		curr->endMemory = y->endMemory;
+		curr->size += y->size;
+
+	} else {
+
+		struct Structure *hold;
+		hold = (struct Structure*) malloc(sizeof(struct Structure*));
+		strcpy(hold->id, "nothing");
+
+		hold->size = y->size;
+
+		hold->startMemory = y->startMemory;
+		hold->endMemory = y->endMemory;
+
+		hold->prev = NULL; hold->next = NULL;
+
+		if (prev == NULL) {
+			hold->next = startHole;
+			startHole->prev = hold;
+			startHole = hold;
+		} else if (prev->next == NULL) {
+			hold->prev = endHole;
+			endHole->next = hold;
+			endHole = hold;
+		} else { // insert in the middle
+			hold->prev = prev;
+			hold->next = prev->next;
+			prev->next = hold;
+		}
+	}
+
+	alloSpace = alloSpace - y->size;
+	remainingSpace = remainingSpace + y->size;
+
+	listTake(y, &startAllocated, &endAllocated);
+
+	return 0;
+
+	}
