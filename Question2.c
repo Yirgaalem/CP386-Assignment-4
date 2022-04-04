@@ -48,8 +48,10 @@ struct Structure {
 int readCommand(char *command);
 void status(char *string);
 int confirmerRQ(char array[MAX][BUFFERSIZE], int size);
-int confrimerRL(char array[MAX][BUFFERSIZE],int size);
+int confrimerRelease(char array[MAX][BUFFERSIZE],int size);
 int confrimRequest(char array[MAX][BUFFERSIZE], int size);
+void listAdd(struct Structure *x, struct Structure **y, struct Structure **z);
+void listTake(struct Structure *x, struct Structure **y, struct Structure **z);
 
 int main(int argc, char *argv[]){
 	if(argc >= 2){
@@ -81,12 +83,15 @@ int main(int argc, char *argv[]){
 //		}
 
 	}
-	return 00;
+	return 0;
 }
 
 int readCommand(char *command){
 	//checks if the last element in the string is a new line character. If it is replace it with a end of line char.
-	char *cmd = (char*) malloc(sizeof(char) * BUFFERSIZE);
+	char *cmd;
+	cmd = (char*) malloc(sizeof(char) * BUFFERSIZE);
+	char array[MAX][BUFFERSIZE];
+
 	int i = 0;
 
 	//While loop will run until a end of string character is found
@@ -111,36 +116,45 @@ int readCommand(char *command){
 	else{
 		//We will need to take the string from the file and break it into 4 parts if its RQ; 1 to check if its "RQ", 2 to check the process number, 3 to check size and 4 to see if the submitted 'B'
 		//If it is RL then we only need 2, 1 to check it is RL, 2 to check the process number/name.
+//		int index = 0;
+//		char *comm = (char *)malloc(sizeof(char)*BUFFERSIZE);
+//		comm = strtok(cmd, " ");//Takes all the characters in the strnig up until the first space
+//
+//		while(comm != NULL){
+//			strcpy(array[index], comm);
+//			comm = strtok(NULL, " ");
+//			index++;
+//		}
+		char *comm;
+		comm = strtok(cmd, " ");
 		int index = 0;
-		char *comm = (char *)malloc(sizeof(char)*BUFFERSIZE);
-		char array[MAX][BUFFERSIZE];
-		comm = strtok(cmd, " ");//Takes all the characters in the strnig up until the first space
 
-		while(comm != NULL){
+		while(comm!= NULL){
 			strcpy(array[index], comm);
-			comm = strtok(NULL, " "); //mayve change to strtok(cmd, " ");
-			i++;
+			comm = strtok(NULL, " ");
+			index++;
 		}
-
+		printf("%s",array);
 		//Comparing the first value in array which is the first string in the command before a white space is entered.
 		//Checking if the commands passed start with RL or RQ, the only possible commands left, if not, print a statement that the command is invalid
 		//As mentioned in the comment above, if it is RL we will have two indicies in the array, one for the string "RL" and the other for the process name/number. For RQ we will have 4
 		int RQ = (strcmp("RQ",array[0])), RL = (strcmp("RL",array[0]));
 
+		printf("hello");
 		if(RQ == 0 || RL == 0){
 			if(RQ == 0 && index == 4){
 				if(confirmerRQ(array, index) && strcmp("B",array[3])==0){
 					//The RQ command is good, now just check if what we asked for is accesible, check if the request is valid
-					int valid = confrimRequest(array,index);
+					int valid = confrimRequest(array, index);
 					if(valid == 0)
 						printf("Successfully allocated %s to process %s\n",array[2],array[1]);
 					else
-						printf("No hole of sufficient size")
+						printf("No hole of sufficient size");
 				}
 			}
 			else if(RL == 0 && index == 2){
 				//do stuff
-				printf("hello");
+				int valid = confrimRelease(array, index);
 			}
 
 			//Runs if the command starts with RQ or RL but isn't proper
@@ -150,6 +164,7 @@ int readCommand(char *command){
 		}
 		else
 			printf("Invalid command, please try again\n");
+
 	}
 	return 0;
 }
@@ -159,7 +174,15 @@ void status(char *string){
 	struct Structure *x = startAllocated;
 	while(!(x==NULL)){
 		printf("Address [%d:%d] Process %s\n",x->startMemory,x->endMemory,x->id);
-		x = x->next
+		x = x->next;
+	}
+
+	printf("\nHoles [Free memory = %d]:\n",remainingSpace);
+	x = startHole;
+
+	while(!(x == NULL)){
+		printf("Address [%d:%d] len = %d\n", x->startMemory, x->endMemory,x->size);
+		x = x->next;
 	}
 }
 
@@ -201,26 +224,58 @@ int confrimRequest(char array[MAX][BUFFERSIZE], int size){
 		return 1;
 
 	strcpy(z->id, array[1]);
-	z->next = NULL, z->prev = NULL, z->size = reqSpace;
 	z->startMemory = y->startMemory;
-	z->endMemory = y->startMemory + reqSpace -1;
+	z->endMemory = y->endMemory + reqSpace -1;
+	z->size = reqSpace;
+	z->prev = NULL;
+	z->next = NULL;
 
-	if(&startAllocated == NULL && &endAllocated == NULL){
-		startAllocated = z;
-		endAllocated = z;
-	}
-	else{
-		z->prev = endAllocated;
-		endAllocated->next = z;
-		endAllocated = z;
-	}
+	listAdd(z, &startAllocated, &endAllocated);
 
 	y->startMemory = y->startMemory + reqSpace;
 	y->size = y->size - reqSpace;
 
+	if(y->size == 0)
+		listTake(y,&startHole,&endHole);
+
 	remainingSpace = remainingSpace - reqSpace;
 	alloSpace = alloSpace + reqSpace;
+	return 0;
+}
 
+void listAdd(struct Structure *x, struct Structure **y, struct Structure **z){
+	if (!(*y == NULL && *z == NULL)) {
+		x->prev = *z;
+		(*z)->next = x;
+		(*z) = x;
+	}
+	else {
+		(*y) = x;
+		(*z) = x;
+	}
+}
+void listTake(struct Structure *x, struct Structure **y,struct Structure **z) {
+
+	if (x->next == NULL && x->prev == NULL) {
+		*z = NULL;
+		*y = NULL;
+
+	}
+	else if (x->next == NULL) {
+		*z = x->prev;
+		(*z)->next = NULL;
+
+	}
+	else if (x->prev == NULL) {
+		*y = x->next;
+		(*y)->prev = NULL;
+	}
+	else {
+		x->prev->next = x->next;
+		x->next->prev = x->prev;
+	}
+	x = NULL;
+	free(x);
 }
 
 
