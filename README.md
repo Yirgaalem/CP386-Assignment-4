@@ -1,5 +1,5 @@
 # CP386-Assignment-4
-Project done by students Jonah Eichler and Nahor Yirgaalem. The first question required programmers to write bankers algorithm implemented by a multi-threaded program. "Customers" request resources from the banks as well as release them.
+Project done by students Nahor Yirgaalem and Jonah Eichler. The first question required programmers to write bankers algorithm implemented by a multi-threaded program. "Customers" request resources from the banks as well as release them.
 The second questions required programmers to write a best fit algorithm for allocating memory, keeping track of idfferent allocations and holes (which represent the available memory)
 
 ##Make File
