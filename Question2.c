@@ -10,7 +10,6 @@ If there is insufficient memory to allocate the request, it will output an error
 Also keep track of which region of memory has been allocated to which process. Necessary so that we can support the "Status" command and is also neeeded when memory is released via "RL" command (the process releasing memory is passed to this command)
  */
 
-
 /*
  * Name: Nahor Yirgaalem
  * ID: 1907755040
@@ -30,16 +29,16 @@ Also keep track of which region of memory has been allocated to which process. N
 
 #define MAX 10
 #define BUFFERSIZE 100
-
+#define sID "struc"
 //An object that will be used to hold the memory, identify the memroy,...
-struct Structure *startHole, *endHole, *startAllocated, *endAllocated;
+struct Customer *startHole, *endHole, *startAllocated, *endAllocated;
 int remainingSpace, totHoles, totProcesses, alloSpace;
 
-struct Structure {
+struct Customer {
     char id[BUFFERSIZE];
 	int size;
-    struct Structure *next;
-    struct Structure * prev;
+    struct Customer *next;
+    struct Customer * prev;
     int startMemory;//the beginning of where there memory is (0)
     int endMemory;//The end of where the memory is, set to how many free spaces we have - 1 as we go from 0 to MAX-1
 };
@@ -48,42 +47,52 @@ struct Structure {
 int readCommand(char *command);
 void status(char *string);
 int confirmerRQ(char array[MAX][BUFFERSIZE], int size);
-int confirmRelease(char array[MAX][BUFFERSIZE],int size);
+int confirmRelease(char array[MAX][BUFFERSIZE]);
 int confirmRequest(char array[MAX][BUFFERSIZE], int size);
-void listAdd(struct Structure *x, struct Structure **y, struct Structure **z);
-void listTake(struct Structure *x, struct Structure **y, struct Structure **z);
+void releaseData(struct Customer *x , struct Customer *y);
+void requestData(struct Customer *x, struct Customer *y, struct Customer *z, char array[MAX][BUFFERSIZE], int reqSpace);
+void listAdd(struct Customer *x, struct Customer **y, struct Customer **z);
+void listTake(struct Customer *x, struct Customer **y, struct Customer **z);
 
 int main(int argc, char *argv[]){
-	if(argc >= 2){
-
+	if(argc > 2){
+		printf("invalid");
+	}
+	else{
 		remainingSpace = atoi(argv[1]);//argv is a vector of strings from the command line, we take argv[1] because the number of bytes allocated to memory is this location
 		printf("Allocated %d bytes of memory\n", remainingSpace);
 
-		struct Structure struc;
+		struct Customer struc;
 		struc.startMemory = 0;
 		struc.endMemory = remainingSpace - 1;
 		struc.size = remainingSpace;
+		strcpy(struc.id, sID);
 
 		startHole = &struc;
 		endHole = &struc;
 
-		//Allocating space for the start and end Allocated structures
-		startAllocated = (struct Structure *)malloc(sizeof(struct Structure));
-		endAllocated = (struct Structure *)malloc(sizeof(struct Structure));
-		startAllocated = NULL; endAllocated = NULL;
+		//Allocating space for the start and end Allocated Customers
+		endAllocated = (struct Customer *)malloc(sizeof(struct Customer));
+		startAllocated = (struct Customer *)malloc(sizeof(struct Customer));
+		endAllocated = NULL;startAllocated = NULL;
+
 		//Assigning the variables which will be used to keep track of; number of total holes, number of total process and the total allocated space
 		totHoles = 1, totProcesses = 0, alloSpace = 0;
 
-//		int cond = 0; //A condition for the while loop
-//		while(cond == 0){
+		//A condition for the while loop
+		int cond = 0;
+
+		//Loop runs forever, has no end. Only exits when the Exit command is called
+		while(cond == 0){
 			printf("command>");//Ask the user for a command
 			char cmdInput[BUFFERSIZE];
 			fgets(cmdInput, BUFFERSIZE, stdin);//stdin is the standard input so we read from the command line what the user has submitted
 			readCommand(cmdInput);
-//		}
+		}
 
 	}
-	return 0;
+
+	return 0;//End
 }
 
 int readCommand(char *command){
@@ -92,13 +101,14 @@ int readCommand(char *command){
 	cmd = (char*) malloc(sizeof(char) * BUFFERSIZE);
 	char array[MAX][BUFFERSIZE];
 
+	//Index
 	int i = 0;
 
 	//While loop will run until a end of string character is found
 	while(command[i] != '\0'){
 		if(command[i] !='\r' && command[i] !='\n') //As long as the current character is not a new line or a carriage feed, we will append that character into our new string
-			cmd[i] = command[i];
-		i++;
+			cmd[i] = command[i]; //set cmd equal to the character at the index position of command
+		i++;//increment
 	}
 
 	//confirming the final character is a end of string/Null character
@@ -106,7 +116,7 @@ int readCommand(char *command){
 
 	//Checks if the command passed was "Status", if so call the status function
 	if(strcmp(cmd,"Status")==0)
-		status(cmd);
+		status(cmd);//Calls the status function with passing the "filtered" command
 
 	//Checks if the command passed was "Status", if print a statement saying the system will exit and exit.
 	else if(strcmp(cmd,"Exit")==0){
@@ -116,15 +126,6 @@ int readCommand(char *command){
 	else{
 		//We will need to take the string from the file and break it into 4 parts if its RQ; 1 to check if its "RQ", 2 to check the process number, 3 to check size and 4 to see if the submitted 'B'
 		//If it is RL then we only need 2, 1 to check it is RL, 2 to check the process number/name.
-//		int index = 0;
-//		char *comm = (char *)malloc(sizeof(char)*BUFFERSIZE);
-//		comm = strtok(cmd, " ");//Takes all the characters in the strnig up until the first space
-//
-//		while(comm != NULL){
-//			strcpy(array[index], comm);
-//			comm = strtok(NULL, " ");
-//			index++;
-//		}
 		char *comm;
 		comm = strtok(cmd, " ");
 		int index = 0;
@@ -139,7 +140,6 @@ int readCommand(char *command){
 		//As mentioned in the comment above, if it is RL we will have two indicies in the array, one for the string "RL" and the other for the process name/number. For RQ we will have 4
 		int RQ = (strcmp("RQ",array[0])), RL = (strcmp("RL",array[0]));
 
-
 		if(RQ == 0 || RL == 0){
 			if(RQ == 0 && index == 4){
 				if(confirmerRQ(array, index) && strcmp("B",array[3])==0){
@@ -153,7 +153,13 @@ int readCommand(char *command){
 			}
 			else if(RL == 0 && index == 2){
 				//do stuff
-				int valid = confirmRelease(array, index);
+				printf("releasing memory for process %s\n",array[1]);
+				int valid = confirmRelease(array);
+
+				if(valid == 0)
+					printf("Successfully release memory for process %s\n", array[1]);
+				else
+					printf("Process %s not found, please try again!\n",array[1]);
 			}
 
 			//Runs if the command starts with RQ or RL but isn't proper
@@ -170,7 +176,7 @@ int readCommand(char *command){
 
 void status(char *string){
 	printf("Partitions [Allocated memory = %d]:\n", alloSpace);
-	struct Structure *x = startAllocated;
+	struct Customer *x = startAllocated;
 	while(!(x==NULL)){
 		printf("Address [%d:%d] Process %s\n",x->startMemory,x->endMemory,x->id);
 		x = x->next;
@@ -204,7 +210,7 @@ int confirmerRQ(char array[MAX][BUFFERSIZE], int size){
 int confirmRequest(char array[MAX][BUFFERSIZE], int size){
 	int reqSpace = atoi(array[2]), fnd = 0;
 
-	struct Structure *x = startHole,*y = NULL, *z = (struct Structure*)malloc(sizeof(struct Structure*));
+	struct Customer *x = startHole,*y = NULL, *z = (struct Customer*)malloc(sizeof(struct Customer*));
 
 	while (x != NULL) {
 		if (x->size >= reqSpace) {
@@ -222,6 +228,13 @@ int confirmRequest(char array[MAX][BUFFERSIZE], int size){
 	if (fnd == 0)
 		return 1;
 
+	requestData(x,y,z,array,reqSpace);
+
+	remainingSpace = remainingSpace - reqSpace;
+	alloSpace = alloSpace + reqSpace;
+	return 0;
+}
+void requestData(struct Customer *x, struct Customer *y, struct Customer *z, char array[MAX][BUFFERSIZE],int reqSpace){
 	strcpy(z->id, array[1]);
 	z->startMemory = y->startMemory;
 	z->endMemory = y->endMemory + reqSpace -1;
@@ -236,13 +249,9 @@ int confirmRequest(char array[MAX][BUFFERSIZE], int size){
 
 	if(y->size == 0)
 		listTake(y,&startHole,&endHole);
-
-	remainingSpace = remainingSpace - reqSpace;
-	alloSpace = alloSpace + reqSpace;
-	return 0;
 }
 
-void listAdd(struct Structure *x, struct Structure **y, struct Structure **z){
+void listAdd(struct Customer *x, struct Customer **y, struct Customer **z){
 	if (!(*y == NULL && *z == NULL)) {
 		x->prev = *z;
 		(*z)->next = x;
@@ -253,7 +262,7 @@ void listAdd(struct Structure *x, struct Structure **y, struct Structure **z){
 		(*z) = x;
 	}
 }
-void listTake(struct Structure *x, struct Structure **y,struct Structure **z) {
+void listTake(struct Customer *x, struct Customer **y,struct Customer **z) {
 
 	if (x->next == NULL && x->prev == NULL) {
 		*z = NULL;
@@ -278,32 +287,39 @@ void listTake(struct Structure *x, struct Structure **y,struct Structure **z) {
 }
 
 
-int confirmRelease(char array[MAX][BUFFERSIZE],int size){
-	struct Structure *x = startAllocated, *y = NULL;
+int confirmRelease(char array[MAX][BUFFERSIZE]){
+	struct Customer *x = startAllocated, *y = NULL;
 	int fnd = 0;
 
 	//A simple loop used to check if that which we are looking for exists, if it is, fnd is set to 1 and we break out the loop
 	while(!(x==NULL) && fnd == 0){
-		if(strcmp(array[1],x)==0){
-			fnd = 1; y - x;
+		if(strcmp(array[1],x->id)==0){
+			fnd = 1; y = x;
 		}
 		x = x->next;
 	}
 
 	if(fnd == 0)
 		return 1;
+	releaseData(x,y);
 
+	return 0;
+}
+
+//Finds the data for releasing
+//Called by confirmRelease
+void releaseData(struct Customer *x , struct Customer *y){
 	int bf = 0, af = 0, ff = 0;
 
-	struct Structure *curr = NULL, *post = NULL, *prev = NULL;
-	curr = startHole;
+	struct Customer *curr = NULL, *post = NULL, *prev = NULL;
+	x = startHole;
 
 	while (bf == 0 && !(x == NULL)) {
-		if (y->startMemory == (x->startMemory + 1)) {
+		if (y->startMemory == (x->endMemory + 1)) {
 			ff = 1;
 			curr = x;
 		}
-		else if (y->endMemory == (x->endMemory - 1)) {
+		else if (y->endMemory == (x->startMemory - 1)) {
 			af = 1;
 			post = x;
 		}
@@ -317,10 +333,19 @@ int confirmRelease(char array[MAX][BUFFERSIZE],int size){
 		x = x->next;
 	}
 
-	if (bf == 1) {
-		struct Structure *hold;
-		hold = (struct Structure*) malloc(sizeof(struct Structure*));
-		strcpy(hold->id, "nothing");
+	if(af == 1){
+		post->startMemory = y->startMemory;
+		post->size += y->size;
+	}
+	else if (ff == 1){
+		curr->endMemory = y->endMemory;
+		curr->size += y->size;
+	}
+
+	else if (bf == 1) {
+		struct Customer *hold;
+		hold = (struct Customer*) malloc(sizeof(struct Customer*));
+		strcpy(hold->id, sID);
 
 		hold->size = curr->size + y->size + post->size;
 		hold->prev = curr->prev; hold->next = post->next;
@@ -332,19 +357,11 @@ int confirmRelease(char array[MAX][BUFFERSIZE],int size){
 		 else if (curr->prev == NULL)
 			startHole = hold;
 
-	} else if (af == 1) {
-		post->startMemory = y->startMemory;
-		post->size += y->size;
-
-	} else if (ff == 1) {
-		curr->endMemory = y->endMemory;
-		curr->size += y->size;
-
 	} else {
 
-		struct Structure *hold;
-		hold = (struct Structure*) malloc(sizeof(struct Structure*));
-		strcpy(hold->id, "nothing");
+		struct Customer *hold;
+		hold = (struct Customer*) malloc(sizeof(struct Customer*));
+		strcpy(hold->id, sID);
 
 		hold->size = y->size;
 
@@ -357,11 +374,13 @@ int confirmRelease(char array[MAX][BUFFERSIZE],int size){
 			hold->next = startHole;
 			startHole->prev = hold;
 			startHole = hold;
-		} else if (prev->next == NULL) {
+		}
+		else if (prev->next == NULL) {
 			hold->prev = endHole;
 			endHole->next = hold;
 			endHole = hold;
-		} else { // insert in the middle
+		}
+		else {
 			hold->prev = prev;
 			hold->next = prev->next;
 			prev->next = hold;
@@ -372,7 +391,5 @@ int confirmRelease(char array[MAX][BUFFERSIZE],int size){
 	remainingSpace = remainingSpace + y->size;
 
 	listTake(y, &startAllocated, &endAllocated);
+}
 
-	return 0;
-
-	}
